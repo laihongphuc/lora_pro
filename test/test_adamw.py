@@ -1,6 +1,7 @@
 import torch 
 import torch.nn as nn
 import lora_pro.adamw as adamw
+from lora_pro import AdamWLoraPro, AdamW
 
 def test_adamw():
     # create a simple model
