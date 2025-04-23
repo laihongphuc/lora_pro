@@ -1,5 +1,5 @@
 # lora_pro
-A simple implementation of optimizer proposed in LoRA-Pro paper for Low-rank finetuning
+A simple implementation of optimizer proposed in [LoRA-Pro: Are Low-Rank Adapters Properly Optimized?](https://arxiv.org/abs/2407.18242)
 
 ## Installation
 
@@ -88,10 +88,10 @@ The table above shows the performance comparison between different fine-tuning a
 If you use this code in your research, please cite the original LoRA-Pro paper:
 
 ```bibtex
-@article{lora_pro,
-  title={LoRA-Pro: Optimizer for Low-rank Adaptation},
-  author={Original Authors},
-  journal={Conference/Journal Name},
+@article{wang2024lora,
+  title={LoRA-Pro: Are Low-Rank Adapters Properly Optimized?},
+  author={Wang, Zhengbo and Liang, Jian and He, Ran and Wang, Zilei and Tan, Tieniu},
+  journal={arXiv preprint arXiv:2407.18242},
   year={2024}
 }
 ```
