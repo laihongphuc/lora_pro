@@ -172,29 +172,42 @@ class AdamWLoraPro:
                 B_TB_inv = B_TB_inv.to(A.dtype)
                 grad_A = (1 / self.scaling_factor ** 2) * B_TB_inv @ grad_A_origin
                 grad_B = (1 / self.scaling_factor ** 2) * ((torch.eye(B.shape[0], device=grad_A_origin.device, dtype=A.dtype) - B @ B_TB_inv @ B.T) @ grad_B_origin @ AA_T_inv)   
-            equiv_grad = self.scaling_factor * B @ grad_A + self.scaling_factor * grad_B @ A
+            # equiv_grad = self.scaling_factor * B @ grad_A + self.scaling_factor * grad_B @ A
             if self.global_steps == 1:
-                self.avg_grads[idx] = torch.zeros_like(equiv_grad)
-                self.avg_sq_grads[idx] = torch.zeros_like(equiv_grad)
-            avg_grad = self.avg_grads[idx]
-            avg_sq_grad = self.avg_sq_grads[idx]
-
+                self.avg_grads[idx*2] = torch.zeros_like(grad_A_origin)
+                self.avg_grads[idx*2+1] = torch.zeros_like(grad_B_origin)
+                self.avg_sq_grads[idx*2] = torch.zeros_like(grad_A_origin)
+                self.avg_sq_grads[idx*2+1] = torch.zeros_like(grad_B_origin)
+            avg_grad_A = self.avg_grads[idx*2]
+            avg_sq_grad_A = self.avg_sq_grads[idx*2]
+            avg_grad_B = self.avg_grads[idx*2+1]
+            avg_sq_grad_B = self.avg_sq_grads[idx*2+1]
             
-            avg_grad.mul_(self.beta1).add_(equiv_grad, alpha=1 - self.beta1)
-            avg_sq_grad.mul_(self.beta2).add_(equiv_grad**2, alpha=1 - self.beta2)
+            # avg_grad.mul_(self.beta1).add_(equiv_grad, alpha=1 - self.beta1)
+            # avg_sq_grad.mul_(self.beta2).add_(equiv_grad**2, alpha=1 - self.beta2)
+            avg_grad_A.mul_(self.beta1).add_(grad_A, alpha=1 - self.beta1)
+            avg_sq_grad_A.mul_(self.beta2).add_(grad_A**2, alpha=1 - self.beta2)
+            avg_grad_B.mul_(self.beta1).add_(grad_B, alpha=1 - self.beta1)
+            avg_sq_grad_B.mul_(self.beta2).add_(grad_B**2, alpha=1 - self.beta2)
             # compute bias-corrected moments
             bias_correction1 = 1 - self.beta1 ** self.global_steps
             bias_correction2 = 1 - self.beta2 ** self.global_steps
-            avg_grad_corr = avg_grad / bias_correction1
-            avg_sq_grad_corr = avg_sq_grad / bias_correction2
+            avg_grad_corr_A = avg_grad_A / bias_correction1
+            avg_sq_grad_corr_A = avg_sq_grad_A / bias_correction2
+            avg_grad_corr_B = avg_grad_B / bias_correction1
+            avg_sq_grad_corr_B = avg_sq_grad_B / bias_correction2
             
             # apply AdamW update
-            std = (avg_sq_grad_corr.sqrt() + self.eps)
-            g = (avg_grad_corr / std)
-            g = g.to(grad_A.dtype)
+            std_A = (avg_sq_grad_corr_A.sqrt() + self.eps)
+            std_B = (avg_sq_grad_corr_B.sqrt() + self.eps)
+            g_A = (avg_grad_corr_A / std_A)
+            g_B = (avg_grad_corr_B / std_B)
+            g_A = g_A.to(grad_A.dtype)
+            g_B = g_B.to(grad_B.dtype)
+            equiv_grad = self.scaling_factor * B @ g_A + self.scaling_factor * g_B @ A
 
-            grad_A_orin_ = self.scaling_factor * B.T @ g 
-            grad_B_orin_ = self.scaling_factor * g @ A.T 
+            grad_A_orin_ = self.scaling_factor * B.T @ equiv_grad 
+            grad_B_orin_ = self.scaling_factor * equiv_grad @ A.T 
 
             grad_A_origin.data = grad_A_orin_
             grad_B_origin.data = grad_B_orin_
